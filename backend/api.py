@@ -1,34 +1,44 @@
-"""Ops Intelligence Copilot - Backend API."""
+"""
+DFW Operations Intelligence Copilot - Unified Backend API.
+
+Combines RAG document assistant with ticket management and AI copilot.
+"""
+
 import os
-from typing import List
+import logging
 from datetime import datetime
-from fastapi import FastAPI, Depends, HTTPException
+from typing import List
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from dotenv import load_dotenv
+from pydantic import BaseModel
 from openai import OpenAI
 
+from chatbot import retrieve_document, ask_question
+from mock_data import get_all_tickets, get_ticket_by_id, calculate_bucket
 from models import (
     Ticket, TicketListResponse, TicketDetailResponse,
     ChatRequest, ChatResponse, Citation,
     KPIBacklogAgingResponse, BucketInfo
 )
-from database import (
-    init_db, get_db, get_all_tickets, get_ticket_by_id,
-    calculate_bucket, TicketDB
-)
+from env_loader import load_env_robust
 
-# Load environment variables
-load_dotenv()
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client
+# Load environment variables with encoding fallback
+if not load_env_robust():
+    logger.warning("Failed to load .env file, using system environment variables only")
+
+# Initialize OpenAI client for ticket chat
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Ops Intelligence Copilot API",
-    description="Backend API for ticket management and AI-powered operations assistance",
-    version="1.0.0"
+    title="DFW Operations Intelligence Copilot",
+    description="AI-powered assistant combining RAG document Q&A with ticket management",
+    version="1.0.0",
 )
 
 # CORS configuration
@@ -40,11 +50,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize database on startup
-@app.on_event("startup")
-def startup_event():
-    """Initialize database with mock data."""
-    init_db()
+
+# ==============================================================================
+# RAG Document Assistant Endpoints
+# ==============================================================================
+
+class DocumentResponse(BaseModel):
+    documents: List
+    total: int
+    query: str
+    error: str = None
+
+
+class AskResponse(BaseModel):
+    query: str
+    answer: str
+    sources: List[dict] = []
+    error: str = None
+
+
+@app.get("/")
+def read_root():
+    """Health check and service info."""
+    return {
+        "service": "DFW Operations Intelligence Copilot",
+        "description": "AI-powered assistant for DFW Airport operations, documentation, and ticket management",
+        "status": "running",
+        "version": "1.0.0",
+        "endpoints": {
+            "rag": ["/documents/{query}", "/ask"],
+            "tickets": ["/api/tickets", "/api/tickets/{id}", "/api/kpis/backlog-aging", "/api/tickets/{id}/chat"]
+        }
+    }
 
 
 @app.get("/health")
@@ -53,35 +90,61 @@ def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
-def db_ticket_to_pydantic(db_ticket: TicketDB) -> Ticket:
-    """Convert SQLAlchemy ticket to Pydantic model."""
+@app.get("/documents/{query}")
+def search_documents(query: str) -> DocumentResponse:
+    """Search documents using RAG retrieval."""
+    try:
+        documents = retrieve_document(query)
+        return {"documents": documents, "total": len(documents), "query": query}
+    except Exception as e:
+        logger.error(f"Error searching documents: {e}", exc_info=True)
+        return {"error": str(e), "documents": [], "total": 0, "query": query}
+
+
+@app.get("/ask")
+def ask(query: str) -> AskResponse:
+    """Ask a question using RAG Q&A."""
+    try:
+        result = ask_question(query)
+        return {
+            "query": query,
+            "answer": result["answer"],
+            "sources": result["sources"]
+        }
+    except Exception as e:
+        logger.error(f"Error asking question: {e}", exc_info=True)
+        return {"error": str(e), "query": query, "answer": "", "sources": []}
+
+
+# ==============================================================================
+# Ticket Management Endpoints
+# ==============================================================================
+
+def dict_to_ticket(ticket_dict: dict) -> Ticket:
+    """Convert ticket dictionary to Pydantic model."""
     return Ticket(
-        id=db_ticket.id,
-        title=db_ticket.title,
-        status=db_ticket.status,
-        priority=db_ticket.priority,
-        created_at=db_ticket.created_at,
-        updated_at=db_ticket.updated_at,
-        description=db_ticket.description,
-        bucket=calculate_bucket(db_ticket.created_at)
+        id=ticket_dict["id"],
+        title=ticket_dict["title"],
+        status=ticket_dict["status"],
+        priority=ticket_dict["priority"],
+        created_at=ticket_dict["created_at"],
+        updated_at=ticket_dict["updated_at"],
+        description=ticket_dict["description"],
+        bucket=ticket_dict.get("bucket")
     )
 
 
 @app.get("/api/tickets", response_model=TicketListResponse)
-def get_tickets(
-    status: str = None,
-    bucket: str = None,
-    db: Session = Depends(get_db)
-):
+def get_tickets(status: str = None, bucket: str = None):
     """
     Get all tickets with optional filtering.
 
     Query parameters:
-    - status: Filter by ticket status
-    - bucket: Filter by aging bucket ("0-7 days", "8-14 days", etc.)
+    - status: Filter by ticket status ("open", "in_progress", "resolved", "closed")
+    - bucket: Filter by aging bucket ("0-7 days", "8-14 days", "15-30 days", "30+ days")
     """
-    tickets_db = get_all_tickets(db)
-    tickets = [db_ticket_to_pydantic(t) for t in tickets_db]
+    tickets_data = get_all_tickets()
+    tickets = [dict_to_ticket(t) for t in tickets_data]
 
     # Apply filters
     if status:
@@ -93,18 +156,18 @@ def get_tickets(
 
 
 @app.get("/api/tickets/{ticket_id}", response_model=TicketDetailResponse)
-def get_ticket(ticket_id: int, db: Session = Depends(get_db)):
+def get_ticket(ticket_id: int):
     """Get a single ticket by ID."""
-    ticket_db = get_ticket_by_id(db, ticket_id)
-    if not ticket_db:
+    ticket_data = get_ticket_by_id(ticket_id)
+    if not ticket_data:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    ticket = db_ticket_to_pydantic(ticket_db)
+    ticket = dict_to_ticket(ticket_data)
     return TicketDetailResponse(ticket=ticket)
 
 
 @app.get("/api/kpis/backlog-aging", response_model=KPIBacklogAgingResponse)
-def get_backlog_aging(db: Session = Depends(get_db)):
+def get_backlog_aging():
     """
     Get backlog aging KPI with 4 buckets.
 
@@ -114,7 +177,7 @@ def get_backlog_aging(db: Session = Depends(get_db)):
     - 15-30 days
     - 30+ days
     """
-    tickets_db = get_all_tickets(db)
+    tickets_data = get_all_tickets()
 
     # Initialize buckets
     buckets = {
@@ -125,10 +188,11 @@ def get_backlog_aging(db: Session = Depends(get_db)):
     }
 
     # Count tickets by bucket
-    for ticket_db in tickets_db:
-        bucket = calculate_bucket(ticket_db.created_at)
-        buckets[bucket]["count"] += 1
-        buckets[bucket]["ticket_ids"].append(ticket_db.id)
+    for ticket in tickets_data:
+        bucket = ticket.get("bucket") or calculate_bucket(ticket["created_at"])
+        if bucket in buckets:
+            buckets[bucket]["count"] += 1
+            buckets[bucket]["ticket_ids"].append(ticket["id"])
 
     # Convert to response format
     bucket_list = [
@@ -144,11 +208,7 @@ def get_backlog_aging(db: Session = Depends(get_db)):
 
 
 @app.post("/api/tickets/{ticket_id}/chat", response_model=ChatResponse)
-def chat_with_ticket(
-    ticket_id: int,
-    request: ChatRequest,
-    db: Session = Depends(get_db)
-):
+def chat_with_ticket(ticket_id: int, request: ChatRequest):
     """
     Chat with AI copilot about a specific ticket.
 
@@ -156,11 +216,11 @@ def chat_with_ticket(
     and citations from the ticket description.
     """
     # Get ticket
-    ticket_db = get_ticket_by_id(db, ticket_id)
-    if not ticket_db:
+    ticket_data = get_ticket_by_id(ticket_id)
+    if not ticket_data:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    ticket = db_ticket_to_pydantic(ticket_db)
+    ticket = dict_to_ticket(ticket_data)
 
     # Build context from ticket
     context = f"""
@@ -177,7 +237,7 @@ Description: {ticket.description}
     messages = [
         {
             "role": "system",
-            "content": """You are an AI operations assistant helping engineers troubleshoot and resolve tickets.
+            "content": """You are an AI operations assistant helping engineers troubleshoot and resolve tickets at DFW Airport.
 You have access to the ticket details and should provide helpful, actionable advice.
 When referencing specific information from the ticket, cite it clearly.
 Be concise and technical."""
@@ -207,7 +267,6 @@ Be concise and technical."""
         answer = response.choices[0].message.content
 
         # Generate citations from ticket description
-        # Split description into sentences for citation snippets
         sentences = ticket.description.split('. ')
         citations = []
 
@@ -231,6 +290,7 @@ Be concise and technical."""
         return ChatResponse(answer=answer, citations=citations)
 
     except Exception as e:
+        logger.error(f"Error generating chat response: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error generating response: {str(e)}"

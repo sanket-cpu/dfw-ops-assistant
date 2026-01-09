@@ -1,41 +1,44 @@
-# Ops Intelligence Copilot
+# DFW Ops Intelligence Copilot
 
-An AI-powered operations intelligence platform that combines ticket management with an intelligent copilot assistant. Built with React, FastAPI, and OpenAI GPT-4.
+An AI-powered operations intelligence platform for Dallas Fort Worth International Airport. Combines ticket management with a RAG-based AI copilot assistant.
 
 ## Features
 
 - **Dashboard with Backlog Aging Visualization**: D3.js-powered chart showing ticket distribution across 4 aging buckets (0-7, 8-14, 15-30, 30+ days)
 - **Interactive Ticket Management**: Browse, filter, and view detailed ticket information
-- **AI Copilot Assistant**: Chat with an AI assistant about specific tickets to get troubleshooting help and recommendations
-- **Source Citations**: AI responses include citations with excerpts from ticket descriptions
-- **Responsive UI**: Modern, clean interface built with React and TypeScript
+- **AI Copilot Assistant**: Chat with an AI assistant about specific tickets for troubleshooting help
+- **RAG Document Q&A**: Query DFW Airport documentation (operations manuals, design criteria, SMS)
+- **Source Citations**: AI responses include citations from ticket descriptions and documents
+- **Responsive UI**: Modern interface built with React and TypeScript
 
 ## Architecture
 
 ```
-┌─────────────┐      ┌──────────────┐
-│   Frontend  │─────▶│  ops-adapter │
-│ (React/Vite)│      │   (FastAPI)  │
-└─────────────┘      └──────────────┘
+┌─────────────┐      ┌──────────────┐      ┌──────────────┐
+│   Frontend  │─────▶│   Backend    │─────▶│   ChromaDB   │
+│ (React/Vite)│      │  (FastAPI)   │      │  (Vectors)   │
+└─────────────┘      └──────────────┘      └──────────────┘
                             │
                             ▼
                      ┌──────────────┐
-                     │   tickets.db │
-                     │   (SQLite)   │
+                     │   OpenAI     │
+                     │   GPT-4o     │
                      └──────────────┘
 ```
 
-### Services
+### Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Vite, served via nginx
-- **ops-adapter**: FastAPI backend with SQLite database and OpenAI integration
-- **Database**: SQLite with 22 pre-populated mock tickets
+- **Frontend**: React 18, TypeScript, Vite, D3.js, React Router
+- **Backend**: Python 3.12+, FastAPI, LangChain, OpenAI GPT-4o-mini
+- **Vector Store**: ChromaDB with OpenAI embeddings
+- **Database**: In-memory mock data (easily extendable to SQLite)
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- Python 3.12+
+- Node.js 18+
 - OpenAI API key
 
 ### Setup
@@ -52,37 +55,50 @@ An AI-powered operations intelligence platform that combines ticket management w
    # Edit .env and add your OpenAI API key
    ```
 
-3. **Start the application**
+   **Note**: Ensure `.env` is UTF-8 encoded. If you see `UnicodeDecodeError`:
    ```bash
-   docker compose up -d
+   python scripts/fix_env_encoding.py
    ```
 
-4. **Access the application**
-   - Frontend: http://localhost:3000
+3. **Install backend dependencies**
+   ```bash
+   uv sync  # preferred
+   # or: pip install -r requirements.txt
+   ```
+
+4. **Start the backend**
+   ```bash
+   cd backend
+   uvicorn api:app --reload --port 8001
+   ```
+
+5. **Start the frontend** (in another terminal)
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+6. **Access the application**
+   - Frontend: http://localhost:5173
    - Backend API: http://localhost:8001
    - API Documentation: http://localhost:8001/docs
 
-### That's it! The database is automatically initialized with mock tickets on first run.
+### Docker Deployment
 
-## Usage
-
-### Dashboard
-- View the **Backlog Aging** chart showing ticket distribution
-- Click on a chart bar to **filter tickets** by aging bucket
-- Click on a ticket row to **view details**
-
-### Ticket Detail Page
-- View complete ticket information (title, status, priority, description, dates)
-- Chat with the **AI Copilot** about the ticket
-- Ask questions like:
-  - "What could be causing this issue?"
-  - "What are the recommended next steps?"
-  - "Are there any similar known issues?"
-- View **source citations** showing where the AI's information came from
+```bash
+docker compose up -d
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8001
+```
 
 ## API Endpoints
 
-### Tickets
+### RAG Document Assistant
+- `GET /documents/{query}` - Search documents using vector retrieval
+- `GET /ask?query=` - Ask a question with RAG Q&A
+
+### Ticket Management
 - `GET /api/tickets` - List all tickets (supports `?status=` and `?bucket=` filters)
 - `GET /api/tickets/{id}` - Get ticket details
 
@@ -98,109 +114,63 @@ An AI-powered operations intelligence platform that combines ticket management w
   }
   ```
 
-## Development
+## Usage
 
-### Frontend Development
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Dashboard
+- View the **Backlog Aging** chart showing ticket distribution
+- Click on a chart bar to filter tickets by aging bucket
+- Click on a ticket row to view details
 
-### Backend Development
-```bash
-cd ops-adapter
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
+### Ticket Detail Page
+- View complete ticket information
+- Chat with the **AI Copilot** about the ticket
+- View **source citations** from ticket descriptions
 
-## Technology Stack
+### Document Q&A
+- Query airport documentation via the `/ask` endpoint
+- Supports DFW Operations Manual, Design Criteria Manual, SMS Manual
 
-### Frontend
-- React 18
-- TypeScript
-- Vite
-- React Router
-- D3.js (for charts)
-- Axios
+## Adding New Documents
 
-### Backend
-- FastAPI
-- SQLAlchemy (SQLite)
-- OpenAI API (GPT-4o-mini)
-- Pydantic
-
-### Infrastructure
-- Docker & Docker Compose
-- nginx
+1. Place PDF/DOCX/TXT files in `backend/files/`
+2. Add metadata entry to `METADATA_CONFIG` in `backend/chatbot.py`
+3. Restart the backend (documents auto-load if collection is empty)
 
 ## File Structure
 
 ```
 .
-├── frontend/              # React frontend
+├── backend/               # FastAPI backend
+│   ├── api.py            # Unified API endpoints
+│   ├── chatbot.py        # RAG document system
+│   ├── mock_data.py      # Ticket mock data
+│   ├── models.py         # Pydantic models
+│   ├── env_loader.py     # Environment loading utilities
+│   └── files/            # PDF/DOCX documents for RAG
+├── frontend/             # React frontend
 │   ├── src/
 │   │   ├── api/          # API client and types
 │   │   ├── components/   # React components
 │   │   ├── pages/        # Page components
 │   │   └── App.tsx       # Main app with routing
-│   ├── Dockerfile        # Multi-stage build
-│   └── nginx.conf        # nginx configuration
-├── ops-adapter/          # FastAPI backend
-│   ├── main.py          # API endpoints
-│   ├── models.py        # Pydantic models
-│   ├── database.py      # SQLAlchemy models & DB logic
 │   └── Dockerfile
-├── data/                # SQLite database (auto-created)
-├── docker-compose.yml   # Orchestration
+├── data/                 # ChromaDB persistence (auto-created)
+├── scripts/              # Utility scripts
+├── docker-compose.yml
 └── README.md
-
 ```
-
-## Key Features Explained
-
-### D3.js Chart Implementation
-The Backlog Aging chart uses D3.js with proper data join patterns to prevent SVG stacking bugs. It:
-- Clears all elements on each render
-- Implements cleanup functions to prevent memory leaks
-- Handles click events for interactive filtering
-
-### AI Chat with Citations
-The chat system:
-- Sends ticket context to OpenAI GPT-4o-mini
-- Maintains conversation history
-- Extracts citations from ticket descriptions
-- Displays citations with document titles and text excerpts
-
-### Docker Compose Setup
-- Single command deployment (`docker compose up -d`)
-- Automatic database initialization
-- Volume persistence for data
-- Environment variable configuration
 
 ## Troubleshooting
 
 ### Port already in use
-If ports 3000 or 8001 are already in use, edit `docker-compose.yml` to change the port mappings.
+Edit the port in the uvicorn command or `docker-compose.yml`.
 
-### Database not initializing
-Delete the `data/` directory and restart:
-```bash
-rm -rf data/
-docker compose down
-docker compose up -d
-```
+### ChromaDB not loading documents
+Delete `data/` directory and restart the backend.
 
 ### OpenAI API errors
-Verify your API key is correctly set in `.env`:
-```bash
-cat .env | grep OPENAI_API_KEY
-```
+Verify your API key is correctly set in `.env`.
 
 ## License
 
 MIT
-
-## Contributing
-
-Contributions welcome! Please open an issue or submit a pull request.

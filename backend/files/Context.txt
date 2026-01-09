@@ -1,0 +1,108 @@
+# DFW Airport – HVAC Context for Maintenance Technicians
+
+---
+
+## 1. Terminal Layout Overview
+
+Dallas Fort Worth International Airport (DFW) consists of 5 main passenger terminals:
+- **Terminal A**: Domestic flights, 26 gates, built 1974, renovated 2017.
+- **Terminal B**: Domestic flights, 47 gates, American Eagle regional hub.
+- **Terminal C**: Domestic flights, 28 gates, features frequent crew/ops HVAC loads.
+- **Terminal D**: International terminal, 26 gates, highest passenger volume, 80-foot ceilings.
+- **Terminal E**: Mixed domestic/international, 41 gates, several multi-story open areas.
+
+Each terminal is climate-controlled by distributed HVAC units along concourses, gate houses, and service areas.
+
+---
+
+## 2. Dallas-Fort Worth Climate Parameters
+
+- **Climate Zone:** Hot-humid (ASHRAE Zone 2A)
+- **Summer highs:** 100–118°F (38–48°C)
+- **Winter lows:** 25–45°F (−4–7°C)
+- **Humidity:** Average summer relative humidity: 60–80%
+- **Severe weather events:** Thunderstorms, high winds (up to 150 mph for design load), occasional ice storms.
+
+Special HVAC requirements:
+- Maintain 72–76°F (22–25°C) for passenger areas year-round
+- Dehumidification required in all terminals
+- Fast recovery after external door openings
+
+---
+
+## 3. Sample HVAC Equipment Inventory
+
+| Unit ID        | Location                | Equipment Type         | Area Covered             | Notes                            |
+|----------------|------------------------|------------------------|--------------------------|-----------------------------------|
+| Terminal-A-AHU-1 | Terminal A North Hallway | Air Handling Unit      | Gate areas (A1-A7)       | 2022, digital controls            |
+| Terminal-A-CH-1  | Terminal A Basement     | Chiller                | Entire Terminal A        | 2015, 200-ton capacity            |
+| Terminal-B-AHU-4 | Terminal B West Concourse| Air Handling Unit      | Gates B20–B28            | 2013, VFD retrofit 2021           |
+| Terminal-B-RTU-2 | Terminal B Roof        | Rooftop Unit           | Ticketing/Check-in       | Original 2009, service history    |
+| Terminal-C-AHU-5 | Terminal C Central     | Air Handling Unit      | Gates C12–C15            | Frequent filter issues            |
+| Terminal-D-CH-1  | Terminal D Mechanical  | Chiller                | Terminal D, mezzanine    | 2017, multi-circuit, BAS monitor  |
+| Terminal-D-AHU-8 | Terminal D International| Air Handling Unit      | Customs, gates D18–D22   | 2021, noted for cooling faults    |
+| Terminal-E-RTU-6 | Terminal E Roof        | Rooftop Unit           | South baggage            | 2018, noise abatement upgrades    |
+| Terminal-E-AHU-3 | Terminal E West        | Air Handling Unit      | Gates E21–E25            | 2012, energy sensor enabled       |
+| Terminal-E-CH-2  | Terminal E Basement    | Chiller                | Terminal E               | Added 2019, support redundancy    |
+| Terminal C-BAS-1 | Terminal C Server Room | BAS Controller         | Whole Terminal C         | Manages all AHUs, escalations     |
+| Terminal D-BAS-2 | Terminal D Control     | BAS Controller         | Terminal D HVAC systems  | High alert integration            |
+
+Notes:
+1. All critical HVAC units are connected to Building Automation System (BAS).
+2. Filtered list for demo—full inventory > 500 units.
+
+---
+
+## 4. Airport-Specific Requirements
+
+**Continuous, 24/7 operation:** All passenger service climate systems must be online at all times; most units have alarms for temperature drift > ±2°F.
+- **Downtime impact:** Affects passenger comfort, staffing productivity, and regulatory compliance; critical for international customs areas.
+
+**Passenger Comfort Priority:** Maintain temp 72–76°F and 40–55% RH; extra cooling during summer boarding.
+- Terminal D and E: Special rapidly recoverable air curtains at main doors.
+
+**Noise Restrictions:** Maximum allowable noise levels: <65 dBA at passenger gates. All rooftop units must be fitted with upgraded sound baffles.
+
+**Energy Efficiency Mandates:** All HVAC retrofits must conform to ASHRAE 90.1-2016 and include variable frequency drives (VFDs) where feasible.
+
+**Security Zoning:** Maintenance staff must badge into equipment rooms. HVAC zones map 1:1 to security sectors for access control.
+
+---
+
+## 5. Building Automation System (BAS) Protocols
+
+- **All main HVAC systems are integrated with BAS (Johnson Controls Metasys v8.0).**
+- **System Features:**
+    - Remote monitoring and alarm notification (temperature, humidity, filter DP, fault codes)
+    - Schedule override capabilities for special events
+    - Fault escalation tree: Technician -> Supervisor -> Facilities Manager
+- **Access Control:** Only licensed facility techs can change BAS settings; all overrides logged.
+- **Common BAS Alarms:**
+    - AHU Filter Differential Pressure >2.0" w.g.
+    - Chiller Compressor Fault (Code C42)
+    - Supply Air Temp Out of Range (>80°F or <55°F)
+    - High Condensate Level
+    - Door Held Open >2 min (for energy loss tracking)
+
+---
+
+## 6. Example Metadata for Knowledge Base Chunks
+
+Each document chunk should include metadata such as:
+- terminal: A/B/C/D/E
+- equipment_type: AHU/CH/RTU/BAS
+- maintenance_type: preventative/corrective/emergency
+- climate_relevant: true/false
+- priority_level: routine/urgent/critical
+
+---
+
+## 7. Example Prompts for Demo
+
+- "What is the protocol for AHU filter replacement in Terminal C?"
+- "Current BAS alarm: Chiller C42 fault in Terminal D—step-by-step corrective action?"
+- "How should HVAC techs respond to an emergency shutdown in Terminal E baggage?"
+- "What temperature and humidity range should be maintained in all passenger areas during summer at DFW?"
+
+---
+
