@@ -1,15 +1,19 @@
-# DFW Airport Operations Intelligence Copilot - v1.0
+# DFW Airport Operations Intelligence Copilot - v1.0 (Baseline)
 
 > **RAG-powered chatbot for DFW Airport HVAC maintenance operations**
 
-A Retrieval-Augmented Generation (RAG) application that helps airport maintenance technicians quickly find information from DFW Airport operations manuals, design criteria, and HVAC maintenance documentation.
+A Retrieval-Augmented Generation (RAG) application that enables airport maintenance technicians to query DFW Airport operations manuals, design criteria, and HVAC maintenance documentation using natural language.
+
+This baseline implementation establishes the foundational RAG architecture: document ingestion, vector search, and LLM-powered question answering with source attribution.
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Screenshots](#screenshots)
 - [Features](#features)
+- [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
@@ -17,59 +21,119 @@ A Retrieval-Augmented Generation (RAG) application that helps airport maintenanc
 - [Configuration](#configuration)
 - [Usage](#usage)
 - [API Documentation](#api-documentation)
-- [Knowledge Base](#knowledge-base)
+- [Implementation Details](#implementation-details)
 - [Limitations](#limitations)
 
 ---
 
 ## Overview
 
-Version 1.0 implements a **basic RAG pipeline** using LangChain and ChromaDB for document retrieval with OpenAI's GPT-4o-mini for question answering. The system enables maintenance technicians to ask natural language questions about DFW Airport HVAC systems, operational procedures, and design standards.
+Version 1.0 serves as the **baseline implementation** of a production-grade RAG pipeline. This version prioritizes architectural simplicity and core functionality validation before introducing advanced retrieval techniques in subsequent iterations.
 
-### Key Capabilities
+The system implements a straightforward document retrieval flow: user queries are embedded, ChromaDB performs similarity search against indexed documents, and GPT-4o-mini generates answers grounded strictly in retrieved context.
 
-- Query DFW Airport operations and design documentation using natural language
-- Retrieve relevant context from 5+ technical manuals and guidelines
-- Get AI-generated answers with source citations
-- Simple chat interface for iterative questioning
-- Real-time document retrieval with metadata tracking
+### Baseline Scope
+
+This baseline version validates:
+- Document ingestion and chunking strategies
+- Vector similarity search performance
+- LLM integration with citation mechanisms
+- API-based architecture for future extensibility
+- End-to-end user interaction flow
+
+Advanced features (reranking, query expansion, conversation memory) are intentionally deferred to v2.0 to maintain baseline simplicity.
+
+---
+
+## Screenshots
+
+### Frontend - Chat Interface
+
+![Frontend Interface](./screenshots/frontend_image.png)
+
+*Streamlit-based chat interface with input field and message display. Users submit queries and receive AI-generated responses with source citations.*
+
+### Backend - FastAPI Server
+
+![Backend Server](./screenshots/backend_image.png)
+
+*FastAPI server initialization on port 8000. Console output confirms successful application startup and ChromaDB integration.*
 
 ---
 
 ## Features
 
-### v1.0 Implementation
+### v1.0 Baseline Implementation
 
-- ✅ **Document Ingestion**: Automatic loading of PDF, DOCX, and TXT files from `/backend/files`
-- ✅ **Vector Search**: ChromaDB-based similarity search (k=3 retrieval)
-- ✅ **LLM Integration**: OpenAI GPT-4o-mini for answer generation
-- ✅ **Source Attribution**: Returns document title, page number, and content snippets
-- ✅ **Chat Interface**: Clean Streamlit UI with conversation history
-- ✅ **Chunking Strategy**: Recursive character text splitting (800 tokens, 120 overlap)
-- ✅ **Metadata Enrichment**: Airport, doc type, and topic tags for each chunk
+- **Automated Document Ingestion**: Directory-based loading of PDF, DOCX, and TXT files from `backend/files/`
+- **Text Chunking**: RecursiveCharacterTextSplitter with 800-token chunks and 120-token overlap
+- **Vector Similarity Search**: ChromaDB with k=3 retrieval using cosine similarity
+- **LLM Integration**: OpenAI GPT-4o-mini with temperature=0 for deterministic outputs
+- **Source Attribution**: Document title, page number, and content snippet returned with each answer
+- **Streamlit Frontend**: Minimal chat interface with conversation history
+- **Metadata Enrichment**: Document-level tags (airport, doc_type, topic) for future filtering
 
-### Limitations
+### Baseline Limitations
 
-- No reranking or relevance scoring
-- Fixed retrieval parameters (k=3)
-- No query preprocessing or expansion
-- Single vector store persistence location
-- Manual document upload only (no UI-based ingestion)
+The following capabilities are **explicitly excluded** from v1.0 baseline:
+- Reranking or relevance scoring of retrieved chunks
+- Dynamic retrieval parameter adjustment (k is fixed at 3)
+- Query preprocessing, expansion, or reformulation
+- Conversation history or multi-turn context
+- UI-based document upload (manual file placement required)
+- Advanced error handling and retry mechanisms
+
+---
+
+## Architecture
+
+```
+┌─────────────┐
+│   User      │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────┐
+│  Streamlit Frontend │ (app.py)
+│  Port: 8501         │
+└──────┬──────────────┘
+       │ HTTP
+       ▼
+┌─────────────────────┐
+│  FastAPI Backend    │ (api.py)
+│  Port: 8000         │
+└──────┬──────────────┘
+       │
+       ▼
+┌─────────────────────┐
+│  RAG Engine         │ (chatbot.py)
+│  - Query Embedding  │
+│  - Vector Search    │
+│  - LLM Generation   │
+└──────┬──────────────┘
+       │
+       ├──────────────┐
+       ▼              ▼
+┌──────────────┐  ┌──────────────┐
+│  ChromaDB    │  │  OpenAI API  │
+│  (Vectors)   │  │  (LLM)       │
+└──────────────┘  └──────────────┘
+```
 
 ---
 
 ## Tech Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Backend Framework** | FastAPI | 0.121.3+ |
-| **Frontend** | Streamlit | 1.51.0+ |
-| **LLM** | OpenAI GPT-4o-mini | gpt-4.1-mini |
-| **Embeddings** | OpenAI Embeddings | text-embedding-3-small |
-| **Vector Store** | ChromaDB | 1.3.5+ |
-| **RAG Framework** | LangChain | 1.0.8+ |
-| **Python** | 3.12+ | - |
-| **Package Manager** | UV | - |
+| Component | Technology | Version | Purpose |
+|-----------|-----------|---------|---------|
+| **Backend Framework** | FastAPI | 0.121.3+ | Async API server |
+| **Frontend Framework** | Streamlit | 1.51.0+ | Rapid UI prototyping |
+| **Language Model** | OpenAI GPT-4o-mini | gpt-4o-mini | Answer generation |
+| **Embeddings** | OpenAI | text-embedding-3-small | Document vectorization |
+| **Vector Database** | ChromaDB | 1.3.5+ | Local vector persistence |
+| **RAG Framework** | LangChain | 1.0.8+ | RAG pipeline orchestration |
+| **Runtime** | Python | 3.12+ | Application runtime |
+| **Package Manager** | UV | - | Dependency management |
 
 ---
 
@@ -78,74 +142,81 @@ Version 1.0 implements a **basic RAG pipeline** using LangChain and ChromaDB for
 ```
 DFW-OPS-COPILOT/
 ├── backend/
-│   ├── files/                          # Knowledge base documents (PDFs, DOCX, TXT)
+│   ├── files/                          # Document corpus
 │   │   ├── DFW_Design_Criteria_Manual_2025_FINAL.pdf
 │   │   ├── DFW_Airport_Operations_Manual_-_4-1-2024.pdf
 │   │   ├── HVAC-Design-Manual.pdf
 │   │   ├── HVAC-LAWA-Guidelines.pdf
 │   │   ├── hvac-preventive-maintenance-checklist.pdf
 │   │   └── Context.txt
-│   ├── api.py                          # FastAPI routes
-│   └── chatbot.py                      # RAG logic and LangChain setup
-├── data/                               # ChromaDB vector store (auto-generated)
+│   ├── api.py                          # FastAPI routes and endpoints
+│   └── chatbot.py                      # RAG pipeline implementation
+├── data/                               # ChromaDB persistence directory
 │   └── .gitkeep
+├── screenshots/                        # Documentation assets
+│   ├── frontend_image.png
+│   └── backend_image.png
 ├── .venv/                              # Python virtual environment
-├── .env                                # Environment variables (not tracked)
-├── .env.example                        # Template for environment variables
-├── .gitignore                          # Git ignore rules
+├── .env                                # Environment variables (gitignored)
+├── .env.example                        # Environment variable template
+├── .gitignore                          # Git ignore patterns
 ├── .python-version                     # Python version specification
-├── app.py                              # Streamlit frontend
-├── pyproject.toml                      # UV package configuration
-├── requirements.txt                    # Pip dependencies
-├── uv.lock                             # UV lock file
-└── README.md                           # This file
+├── app.py                              # Streamlit frontend application
+├── pyproject.toml                      # UV project configuration
+├── requirements.txt                    # Pip-compatible dependencies
+├── uv.lock                             # UV dependency lock file
+└── README.md                           # Project documentation
 ```
 
 ---
 
 ## Prerequisites
 
-- **Python**: 3.12 or higher
-- **OpenAI API Key**: Get one from [OpenAI Platform](https://platform.openai.com)
+### System Requirements
+- Python 3.12 or higher
+- 4GB RAM minimum (ChromaDB in-memory operations)
+- Internet connection (OpenAI API access)
+
+### External Dependencies
+- **OpenAI API Key**: Obtain from [OpenAI Platform](https://platform.openai.com)
 - **Package Manager**: UV (recommended) or pip
-- **System**: Windows/Linux/macOS with 4GB+ RAM
 
 ---
 
 ## Installation
 
-### Option 1: Using UV (Recommended)
+### Option 1: UV Package Manager (Recommended)
 
 ```bash
-# Clone or navigate to project directory
+# Navigate to project directory
 cd dfw-ops-copilot
 
-# Install UV if not already installed
+# Install UV
 pip install uv
 
-# Install dependencies
+# Install dependencies from lock file
 uv sync
 
 # Activate virtual environment
-# On Windows:
+# Windows:
 .venv\Scripts\activate
-# On Linux/Mac:
+# Linux/Mac:
 source .venv/bin/activate
 ```
 
-### Option 2: Using pip
+### Option 2: pip Package Manager
 
 ```bash
-# Clone or navigate to project directory
+# Navigate to project directory
 cd dfw-ops-copilot
 
 # Create virtual environment
 python -m venv .venv
 
 # Activate virtual environment
-# On Windows:
+# Windows:
 .venv\Scripts\activate
-# On Linux/Mac:
+# Linux/Mac:
 source .venv/bin/activate
 
 # Install dependencies
@@ -156,93 +227,101 @@ pip install -r requirements.txt
 
 ## Configuration
 
-### 1. Set up Environment Variables
+### Environment Variables
 
-Create a `.env` file in the project root:
+Create `.env` file in project root:
 
 ```bash
-# Copy the example file
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Configure OpenAI credentials:
 
 ```env
 OPENAI_API_KEY=sk-proj-YOUR_OPENAI_API_KEY_HERE
 ```
 
-⚠️ **Never commit `.env` to version control!**
+**Security**: Never commit `.env` to version control. File is excluded via `.gitignore`.
 
-### 2. Prepare Knowledge Base
+### Document Corpus Setup
 
-Place your PDF, DOCX, or TXT files in the `backend/files/` directory. The system will automatically load and index them on first run.
+Place source documents in `backend/files/` directory. Supported formats:
+- PDF (`.pdf`)
+- Microsoft Word (`.docx`)
+- Plain text (`.txt`)
 
-**Included Documents (v1):**
-- DFW Design Criteria Manual (2025)
+**Baseline corpus includes:**
+- DFW Design Criteria Manual (2025 Edition)
 - DFW Airport Operations Manual (April 2024)
 - HVAC Design Manual
 - HVAC LAWA Guidelines
 - HVAC Preventive Maintenance Checklist
-- Context.txt (equipment inventory)
+- Context.txt (Equipment inventory and metadata)
 
 ---
 
 ## Usage
 
-### Running the Application
+### Application Startup
 
-The application consists of two services that must run simultaneously:
+The system requires two concurrent processes:
 
-#### Terminal 1: Start the FastAPI Backend
+#### Process 1: Backend API Server
 
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Run the API server
 uvicorn api:app --reload --port 8000
 ```
 
-Backend will be available at: `http://localhost:8000`
+Expected output:
+```
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [27520] using WatchFiles
+INFO:     Started server process [30140]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
 
-#### Terminal 2: Start the Streamlit Frontend
+Backend available at: `http://localhost:8000`
+
+#### Process 2: Streamlit Frontend
 
 ```bash
-# In project root directory
 streamlit run app.py
 ```
 
-Frontend will open automatically in your browser at: `http://localhost:8501`
+Frontend automatically opens at: `http://localhost:8501`
 
-### First-Time Setup
+### Initial Document Indexing
 
-On the first run, the system will:
-1. Load all documents from `backend/files/`
-2. Split documents into 800-token chunks with 120-token overlap
-3. Generate embeddings using OpenAI's `text-embedding-3-small`
-4. Store vectors in ChromaDB at `../data/`
+On first execution, the system performs one-time document processing:
 
-This process takes **2-5 minutes** depending on document size. Subsequent runs use the persisted vector store.
+1. Loads all files from `backend/files/`
+2. Splits documents using RecursiveCharacterTextSplitter (800 tokens, 120 overlap)
+3. Generates embeddings via OpenAI `text-embedding-3-small`
+4. Persists vectors to ChromaDB at `../data/`
+
+**Processing time**: 2-3 minutes depending on corpus size. Subsequent startups use cached vectors.
 
 ### Example Queries
 
-Try these questions in the chat interface:
+Representative queries for baseline testing:
 
 ```
 What is the protocol for AHU filter replacement in Terminal C?
 
-What temperature should be maintained in passenger areas during summer?
+What temperature range should be maintained in passenger areas during summer?
 
-How should HVAC techs respond to a BAS alarm for Chiller C42 fault?
+How should HVAC technicians respond to a BAS alarm for Chiller C42 fault?
 
-What are the design criteria for HVAC systems in Terminal D?
+What are the design criteria for HVAC systems in Terminal D international terminal?
 ```
 
 ---
 
 ## API Documentation
 
-### Available Endpoints
+### REST Endpoints
 
 #### 1. Health Check
 ```http
@@ -258,134 +337,190 @@ GET /
 }
 ```
 
-#### 2. Search Documents
+#### 2. Document Retrieval
 ```http
 GET /documents/{query}
 ```
 
 **Parameters:**
-- `query` (string): Search query
+- `query` (string, path): Search query text
 
 **Response:**
 ```json
 {
-  "documents": [...],
+  "documents": [Document],
   "total": 3,
   "query": "HVAC filter replacement"
 }
 ```
 
-#### 3. Ask Question (Main RAG Endpoint)
+#### 3. Question Answering
 ```http
 GET /ask?query={question}
 ```
 
 **Parameters:**
-- `query` (string): User question
+- `query` (string, query parameter): User question
 
 **Response:**
 ```json
 {
   "query": "What is the temperature range for passenger areas?",
-  "answer": "According to the DFW Operations Manual, passenger areas must maintain...",
+  "answer": "According to the DFW Operations Manual, passenger areas must maintain 72–76°F (22–25°C) year-round with 40–55% relative humidity.",
   "sources": [
     {
       "title": "DFW_Airport_Operations_Manual_-_4-1-2024.pdf",
       "page": "12",
-      "snippet": "Maintain temp 72–76°F and 40–55% RH..."
+      "snippet": "Maintain temp 72–76°F and 40–55% RH for all passenger-facing areas..."
     }
   ]
 }
 ```
 
-### Interactive API Docs
+### Interactive Documentation
 
-Once the backend is running, access:
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- **Swagger UI**: `http://localhost:8000/docs` (OpenAPI specification)
+- **ReDoc**: `http://localhost:8000/redoc` (Alternative documentation UI)
 
 ---
 
-## Knowledge Base
+## Implementation Details
 
 ### Document Processing Pipeline
 
-1. **Loading**: `DirectoryLoader` reads PDF/DOCX/TXT from `backend/files/`
-2. **Splitting**: `RecursiveCharacterTextSplitter` creates 800-token chunks
-3. **Metadata**: Auto-enrichment with `doc_title`, `airport`, `doc_type`, `topic`
-4. **Embedding**: OpenAI `text-embedding-3-small` (1536 dimensions)
-5. **Storage**: ChromaDB collection named `documents`
+1. **Loading**: `DirectoryLoader` recursively scans `backend/files/` for PDF/DOCX/TXT
+2. **Parsing**: 
+   - PDF: PyMuPDF extraction
+   - DOCX: Docx2txt parser
+   - TXT: Direct text loading
+3. **Chunking**: `RecursiveCharacterTextSplitter`
+   - `chunk_size=800` tokens
+   - `chunk_overlap=120` tokens (15% overlap to preserve context)
+4. **Metadata Enrichment**: Auto-populated fields per chunk:
+   - `doc_title`: Source filename
+   - `airport`: "dfw"
+   - `doc_type`: Inferred from filename pattern
+   - `topic`: Document category
+   - `page`: Page number (when available)
+5. **Embedding**: OpenAI `text-embedding-3-small` (1536 dimensions)
+6. **Storage**: ChromaDB collection named `documents` with persistent storage at `../data/`
 
 ### Retrieval Configuration
 
 ```python
-# From chatbot.py
 retriever = chroma.as_retriever(
-    search_type="similarity",
-    search_kwargs={'k': 3}  # Returns top 3 most similar chunks
+    search_type="similarity",           # Cosine similarity
+    search_kwargs={'k': 3}              # Fixed at 3 chunks
 )
 ```
 
+**Retrieval Strategy**: Cosine similarity between query embedding and document chunk embeddings. Top-k=3 chunks selected without reranking.
+
 ### Prompt Engineering
 
-v1 uses a **strict grounding prompt** to prevent hallucination:
-- Only answers from retrieved context
-- Explicitly states when information is unavailable
-- Cites specific manuals (OPS vs DCM)
-- Returns source metadata (document name, page number, snippet)
+The baseline employs a strict grounding strategy to minimize hallucination:
+
+**Key prompt directives:**
+- Answer ONLY from provided context
+- If context insufficient, explicitly state "I don't know based on the available documentation"
+- Cite source document type (OPS Manual vs Design Criteria Manual)
+- Include document name and page number in citations
+- Never fabricate procedures, specifications, or contact information
+
+**Prompt length**: ~1500 tokens (including instructions, context placeholder, and examples)
+
+**Temperature**: 0 (deterministic outputs for consistency)
 
 ---
 
 ## Limitations
 
-### v1.0 Known Issues
+### v1.0 Baseline Constraints
 
-1. **No Reranking**: Retrieved documents are not reranked by relevance
-2. **Fixed k=3**: Cannot dynamically adjust number of retrieved chunks
-3. **No Query Expansion**: Simple queries may miss relevant documents
-4. **Single Persistence Path**: Vector store location hardcoded to `../data/`
-5. **No Multi-Turn Context**: Each query is independent (no conversation memory)
-6. **Manual Document Management**: No UI for uploading/removing documents
-7. **Basic Error Handling**: Limited retry logic and fallback mechanisms
+This baseline version has the following **known limitations** by design:
+
+1. **No Retrieval Reranking**  
+   Retrieved chunks are not reranked by relevance. ChromaDB similarity scores alone determine ranking.
+
+2. **Fixed Retrieval Count (k=3)**  
+   System always retrieves exactly 3 chunks regardless of query complexity or context requirements.
+
+3. **No Query Preprocessing**  
+   User queries are embedded directly without:
+   - Spelling correction
+   - Query expansion
+   - Synonym handling
+   - Abbreviation normalization
+
+4. **Stateless Conversations**  
+   Each query is independent. No conversation history or multi-turn context tracking.
+
+5. **Manual Document Management**  
+   Adding/removing documents requires:
+   - Manual file placement in `backend/files/`
+   - Server restart to trigger re-indexing
+   - No UI-based document upload capability
+
+6. **Single Vector Store Path**  
+   ChromaDB persistence location hardcoded to `../data/`. Cannot maintain multiple document collections without code modification.
+
+7. **Basic Error Handling**  
+   Limited retry logic for API failures. No graceful degradation for rate limits or service outages.
+
+8. **No Cost Controls**  
+   No built-in monitoring or limits for OpenAI API usage costs.
+
+### Rationale for Limitations
+
+These constraints are **intentional** in the baseline version to:
+- Validate core RAG architecture before adding complexity
+- Establish performance baselines for future comparison
+- Minimize initial development time
+- Simplify debugging and troubleshooting
+
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues and Resolutions
 
-**Problem**: `OPENAI_API_KEY not found in environment variables`
-- **Solution**: Ensure `.env` file exists in project root with valid API key
+**Issue**: `OPENAI_API_KEY not found in environment variables`  
+**Resolution**: Verify `.env` file exists in project root directory with valid API key. Restart application after creating/modifying `.env`.
 
-**Problem**: `No module named 'langchain'`
-- **Solution**: Activate virtual environment and run `pip install -r requirements.txt`
+**Issue**: `No module named 'langchain'`  
+**Resolution**: Ensure virtual environment is activated. Re-run `uv sync` or `pip install -r requirements.txt`.
 
-**Problem**: ChromaDB shows 0 documents
-- **Solution**: Delete `data/` folder and restart backend to re-index documents
+**Issue**: ChromaDB collection shows 0 documents  
+**Resolution**: Delete `data/` directory entirely. Restart backend to trigger full re-indexing.
 
-**Problem**: Slow first query
-- **Solution**: First query triggers document loading (2-5 min). Subsequent queries are fast.
+**Issue**: First query takes 2-5 minutes  
+**Resolution**: Expected behavior. First query triggers document loading and embedding generation. Subsequent queries complete in ~2 seconds.
 
-**Problem**: Backend won't start on port 8000
-- **Solution**: Port already in use. Change port: `uvicorn api:app --port 8001`
+**Issue**: Backend fails to start - port 8000 already in use  
+**Resolution**: Identify process using port 8000 or specify alternate port: `uvicorn api:app --port 8001`
+
+**Issue**: OpenAI API rate limit errors  
+**Resolution**: v1.0 baseline has no rate limiting. Implement request throttling or upgrade OpenAI tier.
+
 
 ---
 
+## Contributing
+
+Development follows standard pull request workflow:
+
+1. Create feature branch from `v1` baseline
+2. Implement changes with unit tests
+3. Update documentation to reflect changes
+4. Submit pull request with descriptive commit messages
+
+---
 
 ## License
 
-This project is for internal DFW Airport use. All airport documentation remains property of Dallas Fort Worth International Airport.
+Internal use only. All DFW Airport documentation remains property of Dallas Fort Worth International Airport.
 
 ---
 
-## Version History
-
-### v1.0 (January 2026)
-- Initial release
-- Basic RAG pipeline with ChromaDB + LangChain
-- Streamlit chat interface
-- FastAPI backend with 3 endpoints
-- Support for 5 HVAC/operations manuals
-- Source citation with metadata
-
-**Built with:** FastAPI, LangChain, ChromaDB, OpenAI, Streamlit
+**Technology Stack**: FastAPI · LangChain · ChromaDB · OpenAI · Streamlit
