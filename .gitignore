@@ -82,8 +82,9 @@ yarn-error.log*
 *.backup
 .env.backup*
 
-# ChromaDB (if not wanting to commit vectors)
-data/chroma/
+# ChromaDB / data directory (keep folder but ignore contents)
+data/*
+!data/.gitkeep
 
 # Python packaging
 *.manifest
