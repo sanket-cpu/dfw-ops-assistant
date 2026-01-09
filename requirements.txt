@@ -1,0 +1,16 @@
+fastapi
+fastapi[standard]
+uvicorn
+streamlit
+langchain
+langchain-openai
+langchain-chroma
+langchain-community
+langchain-core
+chromadb
+openai
+python-dotenv
+pydantic
+requests
+pypdf
+tiktoken
