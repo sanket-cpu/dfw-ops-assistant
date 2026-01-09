@@ -25,7 +25,9 @@ export default function BacklogAgingChart({
     const width = 600 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
-    // Clear existing content to prevent stacking
+    // WHY selectAll("*").remove(): D3 manipulates the DOM directly, outside React's virtual DOM.
+    // When React re-renders (data change, StrictMode double-render), D3 would append new elements
+    // to existing ones, causing SVG stacking. Clearing first ensures clean slate for each render.
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
@@ -68,7 +70,10 @@ export default function BacklogAgingChart({
       .style("font-size", "14px")
       .text("Number of Tickets");
 
-    // Bars with data join pattern
+    // WHY D3 data join pattern (selectAll.data.enter): D3's data binding lifecycle handles
+    // creating, updating, and removing elements based on data changes. Even though we clear
+    // the SVG above, using proper data join is idiomatic D3 and makes the code easier to
+    // extend for transitions or update patterns later.
     const bars = g.selectAll(".bar").data(data);
 
     // Enter selection
@@ -76,6 +81,9 @@ export default function BacklogAgingChart({
       .enter()
       .append("rect")
       .attr("class", "bar")
+      // WHY || 0: TypeScript's scaleBand.x() returns undefined if label isn't in domain.
+      // In practice this never happens (data comes from same source as domain), but the
+      // fallback satisfies TypeScript and provides safe default for edge cases.
       .attr("x", (d) => x(d.label) || 0)
       .attr("y", (d) => y(d.count))
       .attr("width", x.bandwidth())
@@ -105,7 +113,9 @@ export default function BacklogAgingChart({
       .style("font-weight", "bold")
       .text((d) => d.count);
 
-    // Cleanup function to remove elements when component unmounts
+    // WHY cleanup function: React StrictMode (development only) intentionally double-mounts
+    // components to catch side effects. Without cleanup, unmount-remount leaves orphaned SVG
+    // elements. Also needed when Dashboard navigates away and returns - prevents memory leaks.
     return () => {
       svg.selectAll("*").remove();
     };

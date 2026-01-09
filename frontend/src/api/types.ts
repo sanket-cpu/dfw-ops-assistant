@@ -39,9 +39,32 @@ export interface ChatRequest {
   history?: Message[];
 }
 
+export interface ChatAction {
+  type: "update_status" | "none";
+  new_status?: "open" | "in_progress" | "resolved" | "closed";
+}
+
 export interface ChatResponse {
   answer: string;
   citations: Citation[];
+  action?: ChatAction | null;
+}
+
+export interface TicketUpdateResponse {
+  ticket: Ticket;
+  message: string;
+}
+
+// RAG Document Q&A types
+export interface AskResponse {
+  query: string;
+  answer: string;
+  sources: Array<{
+    title: string;
+    page: string;
+    snippet: string;
+  }>;
+  error?: string;
 }
 
 export interface BucketInfo {

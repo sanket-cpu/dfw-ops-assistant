@@ -14,6 +14,9 @@ class Ticket(BaseModel):
     created_at: datetime
     updated_at: datetime
     description: str
+    # WHY Optional and computed at query time: Bucket depends on current datetime, so storing
+    # it would require constant updates. Computing on read ensures accurate age classification.
+    # None when not yet computed; always populated in API responses via get_all_tickets().
     bucket: Optional[str] = None  # Computed: "0-7 days", "8-14 days", etc.
 
     class Config:
@@ -51,10 +54,36 @@ class ChatRequest(BaseModel):
     history: Optional[List[Message]] = Field(default_factory=list)
 
 
+class ChatAction(BaseModel):
+    """Action suggested by AI copilot.
+
+    WHY separate from answer: The AI suggests actions but doesn't execute them automatically.
+    The frontend shows a confirmation button, requiring explicit user approval before calling
+    the PATCH endpoint. This prevents accidental status changes from misinterpreted prompts.
+    """
+    type: str  # "update_status", "none"
+    new_status: Optional[str] = None  # "open", "in_progress", "resolved", "closed"
+
+
 class ChatResponse(BaseModel):
     """Response for POST /api/tickets/{id}/chat."""
     answer: str
     citations: List[Citation]
+    # WHY action is Optional: Not every chat message triggers an action. Only when the AI
+    # detects intent to change status will it include an action. UI conditionally renders
+    # the confirmation button based on action presence.
+    action: Optional[ChatAction] = None  # Suggested action from AI
+
+
+class TicketStatusUpdate(BaseModel):
+    """Request for PATCH /api/tickets/{id}."""
+    status: str  # "open", "in_progress", "resolved", "closed"
+
+
+class TicketUpdateResponse(BaseModel):
+    """Response for PATCH /api/tickets/{id}."""
+    ticket: Ticket
+    message: str
 
 
 class BucketInfo(BaseModel):

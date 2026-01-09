@@ -63,7 +63,12 @@ METADATA_CONFIG = {
 
 
 def load_internal_documents():
-    """Load and process documents from the files directory."""
+    """Load and process documents from the files directory.
+
+    WHY silent failure: If document loading fails, the system should still start up and
+    serve the API - it will just return "I don't know" answers. This graceful degradation
+    is better than crashing the entire backend when files/ directory is missing or corrupted.
+    """
     # Load all document types
     loaders = [
         DirectoryLoader(INTERNAL_DOCS_DIR, glob="**/*.pdf", loader_cls=PyMuPDFLoader),
@@ -88,12 +93,18 @@ def load_internal_documents():
         if filename in METADATA_CONFIG:
             doc.metadata.update(METADATA_CONFIG[filename])
 
-    # Split and store documents
+    # WHY 800 char chunks with 120 overlap: Chunks must be small enough for embedding models
+    # (text-embedding-3-small has 8191 token limit, but shorter chunks = better semantic focus).
+    # 800 chars ≈ 200 tokens, good for retrieval precision. Overlap of 15% (120/800) prevents
+    # losing context at chunk boundaries - important for procedural documents with numbered steps.
     splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=120)
     split_docs = splitter.split_documents(docs)
     chroma.add_documents(split_docs)
     logger.info(f"Loaded {len(split_docs)} document chunks into ChromaDB")
 
+# WHY use private _collection.count(): ChromaDB's public API doesn't expose a simple "is empty"
+# check. The _collection attribute is technically internal, but it's the only way to avoid
+# re-loading documents on every startup. Risk: may break on ChromaDB version updates.
 #chroma.reset_collection()
 if chroma._collection.count() == 0:
     load_internal_documents()
@@ -103,7 +114,11 @@ retriever = chroma.as_retriever(
     search_type="similarity",
     search_kwargs={'k': 3}  # Reduce from 5 to 3 - more focused
 )
-# STRICT PROMPT - Prevents Hallucination
+# WHY strict prompt with 6 numbered sections: LLMs hallucinate when given vague instructions.
+# Each section constrains the model: (1) scoping to DFW only, (2) resolving document conflicts,
+# (3) forcing structured answers, (4) handling procedures step-by-step, (5) explicit fabrication
+# bans, (6) mandatory citations. This level of detail is necessary - shorter prompts lead to
+# made-up specifications and phantom document references.
 TEMPLATE = """
 You are an AI assistant specializing in Dallas Fort Worth International Airport (DFW) operations and design criteria.
 You support airport staff with questions about DFW operations, design standards, and general airport knowledge.

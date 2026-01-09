@@ -4,8 +4,9 @@
  */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getTicket } from "../api/client";
+import { getTicket, updateTicketStatus } from "../api/client";
 import CopilotChat from "../components/CopilotChat";
+import Toast from "../components/Toast";
 import type { Ticket } from "../api/types";
 
 export default function TicketDetail() {
@@ -14,6 +15,16 @@ export default function TicketDetail() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error"; visible: boolean }>({
+    message: "",
+    type: "success",
+    visible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type, visible: true });
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -33,6 +44,38 @@ export default function TicketDetail() {
       console.error("Error loading ticket:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // WHY handleQuickAction separate from chat-based updates: Users can change status two ways:
+  // (1) Quick action buttons in the header (direct, no AI), (2) Chat commands like "mark resolved"
+  // (AI-mediated). Both ultimately call the same API but have different UX flows. This function
+  // handles the direct button path; CopilotChat has its own handler for the AI path.
+  const handleQuickAction = async (newStatus: string) => {
+    if (!ticket) return;
+    setIsUpdatingStatus(true);
+    try {
+      console.log(`Updating ticket ${ticket.id} to status: ${newStatus}`);
+      const response = await updateTicketStatus(ticket.id, newStatus);
+      console.log("Update response:", response);
+      setTicket(response.ticket);
+
+      // WHY status-to-message mapping: API returns technical status strings ("in_progress"),
+      // but users expect human-readable confirmations. Mapping provides consistent, friendly
+      // toast messages. Fallback "Ticket updated" handles unexpected statuses gracefully.
+      const statusMessages: Record<string, string> = {
+        resolved: "Ticket marked as resolved",
+        closed: "Ticket closed",
+        in_progress: "Ticket marked as in progress",
+        open: "Ticket reopened",
+      };
+      showToast(statusMessages[newStatus] || "Ticket updated", "success");
+    } catch (err: any) {
+      console.error("Failed to update status:", err);
+      const errorMsg = err?.response?.data?.detail || err?.message || "Failed to update ticket status";
+      showToast(errorMsg, "error");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -143,31 +186,93 @@ export default function TicketDetail() {
               {ticket.title}
             </h1>
           </div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <span
-              style={{
-                padding: "6px 12px",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "600",
-                backgroundColor: getStatusBadgeColor(ticket.status) + "20",
-                color: getStatusBadgeColor(ticket.status),
-              }}
-            >
-              {ticket.status.replace("_", " ")}
-            </span>
-            <span
-              style={{
-                padding: "6px 12px",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "600",
-                backgroundColor: getPriorityColor(ticket.priority) + "20",
-                color: getPriorityColor(ticket.priority),
-              }}
-            >
-              {ticket.priority}
-            </span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <span
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  backgroundColor: getStatusBadgeColor(ticket.status) + "20",
+                  color: getStatusBadgeColor(ticket.status),
+                }}
+              >
+                {ticket.status.replace("_", " ")}
+              </span>
+              <span
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  backgroundColor: getPriorityColor(ticket.priority) + "20",
+                  color: getPriorityColor(ticket.priority),
+                }}
+              >
+                {ticket.priority}
+              </span>
+            </div>
+            {/* Quick Actions */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              {ticket.status === "open" && (
+                <button
+                  onClick={() => handleQuickAction("in_progress")}
+                  disabled={isUpdatingStatus}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#8B5CF6",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: isUpdatingStatus ? "not-allowed" : "pointer",
+                    opacity: isUpdatingStatus ? 0.7 : 1,
+                  }}
+                >
+                  Start Working
+                </button>
+              )}
+              {(ticket.status === "open" || ticket.status === "in_progress") && (
+                <button
+                  onClick={() => handleQuickAction("resolved")}
+                  disabled={isUpdatingStatus}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#10B981",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: isUpdatingStatus ? "not-allowed" : "pointer",
+                    opacity: isUpdatingStatus ? 0.7 : 1,
+                  }}
+                >
+                  Close Ticket
+                </button>
+              )}
+              {(ticket.status === "resolved" || ticket.status === "closed") && (
+                <button
+                  onClick={() => handleQuickAction("open")}
+                  disabled={isUpdatingStatus}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#EF4444",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: isUpdatingStatus ? "not-allowed" : "pointer",
+                    opacity: isUpdatingStatus ? 0.7 : 1,
+                  }}
+                >
+                  Reopen Ticket
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -224,8 +329,34 @@ export default function TicketDetail() {
           backgroundColor: "#fff",
         }}
       >
-        <CopilotChat ticketId={ticket.id} />
+        {/* WHY onStatusChange callback: CopilotChat makes the API call to update status, but
+            this parent component owns the ticket state. Without callback, the header badges
+            and quick action buttons would show stale status. Callback syncs child's action
+            with parent's state, maintaining single source of truth for ticket data. */}
+        <CopilotChat
+          ticketId={ticket.id}
+          currentStatus={ticket.status}
+          onStatusChange={(newStatus, updatedTicket) => {
+            setTicket(updatedTicket);
+            // Show toast from chat status change
+            const statusMessages: Record<string, string> = {
+              resolved: "Ticket marked as resolved",
+              closed: "Ticket closed",
+              in_progress: "Ticket marked as in progress",
+              open: "Ticket reopened",
+            };
+            showToast(statusMessages[newStatus] || "Ticket updated", "success");
+          }}
+        />
       </div>
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.visible}
+        onClose={() => setToast({ ...toast, visible: false })}
+      />
     </div>
   );
 }

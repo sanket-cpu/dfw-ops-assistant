@@ -10,7 +10,12 @@ from typing import List, Dict, Any, Optional
 
 
 def calculate_bucket(created_at: datetime) -> str:
-    """Calculate aging bucket for a ticket based on creation date."""
+    """Calculate aging bucket for a ticket based on creation date.
+
+    WHY inclusive boundaries (<=7 not <7): A ticket created exactly 7 days ago should be in
+    "0-7 days" bucket, not "8-14 days". The bucket labels use inclusive ranges, so the code
+    must match. Note: This is time-dependent - bucket changes at midnight, not at exact 168 hours.
+    """
     days_old = (datetime.now() - created_at).days
 
     if days_old <= 7:
@@ -253,7 +258,10 @@ def generate_tickets() -> List[Dict[str, Any]]:
     tickets = []
     for raw in raw_tickets:
         created_at = now - timedelta(days=raw["days_ago"])
-        # Updated_at is usually more recent than created_at
+        # WHY this offset formula: updated_at should be more recent than created_at (tickets get
+        # updated after creation). For tickets created 5 days ago: update_offset = min(5, max(0, 3)) = 3,
+        # so updated_at is 3 days ago (2 days after creation). For new tickets (0-1 days old),
+        # the max(0, ...) ensures offset doesn't go negative. This creates realistic activity patterns.
         update_offset = min(raw["days_ago"], max(0, raw["days_ago"] - 2))
         updated_at = now - timedelta(days=update_offset)
 
@@ -270,7 +278,9 @@ def generate_tickets() -> List[Dict[str, Any]]:
     return tickets
 
 
-# Generate tickets on module load
+# WHY global in-memory list: This is demo/mock data. Using a global list allows status updates
+# to persist during a session, but resets on server restart. For production, replace with
+# database calls. The generate_tickets() call happens once at module import, not per request.
 TICKETS = generate_tickets()
 
 
@@ -286,5 +296,24 @@ def get_ticket_by_id(ticket_id: int) -> Optional[Dict[str, Any]]:
     """Get a single ticket by ID."""
     for ticket in TICKETS:
         if ticket["id"] == ticket_id:
+            return {**ticket, "bucket": calculate_bucket(ticket["created_at"])}
+    return None
+
+
+def update_ticket_status(ticket_id: int, status: str) -> Optional[Dict[str, Any]]:
+    """Update a ticket's status.
+
+    WHY validate status here AND in api.py: Defense in depth. The API layer validates for user-facing
+    error messages, but this function may be called from other contexts (tests, scripts, future code).
+    Returning None instead of raising exception allows callers to handle gracefully.
+    """
+    valid_statuses = ["open", "in_progress", "resolved", "closed"]
+    if status not in valid_statuses:
+        return None
+
+    for ticket in TICKETS:
+        if ticket["id"] == ticket_id:
+            ticket["status"] = status
+            ticket["updated_at"] = datetime.now()
             return {**ticket, "bucket": calculate_bucket(ticket["created_at"])}
     return None

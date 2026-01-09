@@ -9,17 +9,46 @@ import { getTickets, getBacklogAging } from "../api/client";
 import type { Ticket, BucketInfo } from "../api/types";
 
 export default function Dashboard() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]); // Active tickets only
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
+  const [resolvedTickets, setResolvedTickets] = useState<Ticket[]>([]);
   const [buckets, setBuckets] = useState<BucketInfo[]>([]);
   const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // WHY visibility and focus listeners: When user navigates to ticket detail, changes status,
+  // then clicks "Back to Dashboard", React Router doesn't remount this component (it's still in
+  // the DOM tree). Without these listeners, stale data would show. Visibility handles tab switches,
+  // focus handles back navigation. Both ensure fresh data after any user action elsewhere.
   useEffect(() => {
     loadData();
+
+    // Refresh data when page becomes visible (user returns from ticket page)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadData();
+      }
+    };
+
+    // Refresh on focus (returning from another tab or back navigation)
+    const handleFocus = () => {
+      loadData();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
+  // WHY separate useEffect for filtering: Mixing data loading and filtering in one effect would
+  // cause infinite loops (filter updates state, triggers effect, reloads data, triggers filter...).
+  // Separating concerns: first effect handles data fetching, this effect handles derived state.
+  // Dependencies are intentional: re-filter when selection changes OR when base tickets change.
   useEffect(() => {
     // Filter tickets when bucket selection changes
     if (selectedBucket) {
@@ -40,8 +69,20 @@ export default function Dashboard() {
         getBacklogAging(),
       ]);
 
-      setTickets(ticketsData.tickets);
-      setFilteredTickets(ticketsData.tickets);
+      // WHY separate active vs resolved: Dashboard has two visual sections - the main backlog
+      // (work remaining) and a "success" section (completed work). Keeping them in separate state
+      // allows independent rendering and prevents resolved tickets from appearing in backlog chart
+      // counts. The filtering happens client-side since all tickets come in one API call anyway.
+      const activeTickets = ticketsData.tickets.filter(
+        (t) => t.status !== "resolved" && t.status !== "closed"
+      );
+      const resolved = ticketsData.tickets.filter(
+        (t) => t.status === "resolved" || t.status === "closed"
+      );
+
+      setTickets(activeTickets);
+      setFilteredTickets(activeTickets);
+      setResolvedTickets(resolved);
       setBuckets(kpiData.buckets);
     } catch (err) {
       setError("Failed to load data. Please try again.");
@@ -238,8 +279,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Tickets Table */}
-      <TicketsTable tickets={filteredTickets} />
+      {/* Active Tickets Table */}
+      <div style={{ marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "16px", color: "#374151" }}>
+          Active Tickets ({filteredTickets.length})
+        </h2>
+        <TicketsTable tickets={filteredTickets} />
+      </div>
+
+      {/* Resolved Tickets Section */}
+      {resolvedTickets.length > 0 && (
+        <div
+          style={{
+            marginTop: "32px",
+            padding: "24px",
+            backgroundColor: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            borderRadius: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <span style={{ fontSize: "24px" }}>{String.fromCodePoint(0x2705)}</span>
+            <h2 style={{ fontSize: "20px", fontWeight: "bold", margin: 0, color: "#15803D" }}>
+              Resolved Tickets ({resolvedTickets.length})
+            </h2>
+          </div>
+          <TicketsTable tickets={resolvedTickets} />
+        </div>
+      )}
     </div>
   );
 }

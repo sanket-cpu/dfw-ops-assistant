@@ -51,7 +51,9 @@ def load_env_robust(env_path: str = None) -> bool:
         logger.error(f"Unexpected error loading .env: {e}")
         return False
 
-    # Step 3: Fallback encoding detection
+    # WHY this encoding order: Windows Notepad saves as UTF-16 by default when users paste
+    # API keys containing non-ASCII characters. UTF-16-LE is most common on Windows.
+    # Latin-1 is last resort - it "succeeds" on any byte sequence but may produce garbage.
     encodings = ['utf-16', 'utf-16-le', 'utf-16-be', 'latin-1', 'cp1252']
 
     for encoding in encodings:
@@ -98,6 +100,10 @@ def _parse_and_inject_env(content: str):
     """
     Parse .env file content and inject variables into os.environ.
 
+    WHY manual parser instead of load_dotenv: python-dotenv's load_dotenv() doesn't accept
+    already-decoded string content or an encoding parameter. When we detect non-UTF-8 encoding,
+    we must decode the file ourselves, then parse. This minimal parser handles the common cases.
+
     Supports the standard KEY=VALUE format with:
     - Comments (lines starting with #)
     - Empty lines
@@ -116,7 +122,8 @@ def _parse_and_inject_env(content: str):
 
         # Parse KEY=VALUE format
         if '=' in line:
-            # Split only on first = to allow = in values
+            # WHY split('=', 1): Values can contain = signs, e.g. DATABASE_URL="postgres://...?sslmode=require"
+            # Without maxsplit=1, this would break into 3 parts. Only the first = separates key from value.
             key, value = line.split('=', 1)
             key = key.strip()
             value = value.strip()
