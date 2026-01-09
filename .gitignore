@@ -1,11 +1,35 @@
-# Python-generated files
+# Python
+# Byte-code files
+*.pyc
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
 
-# Virtual environments
-.venv
-.env
+# Virtual environment
+venv/
+.venv/
+env/
+.env/
+
+# IDE-specific files (e.g., PyCharm, VS Code)
+.idea/
+.vscode/
+*.swp
+
+# Interpreter configuration
+.python-version
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Test and coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Distribution and packaging
+dist/
+build/
+*.egg-info/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
