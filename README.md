@@ -20,6 +20,7 @@ Version 2.0 represents a **major architectural upgrade** from the v1.0 baseline,
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
+- [Docker Deployment](#docker-deployment)
 - [API Documentation](#api-documentation)
 - [Implementation Details](#implementation-details)
 - [Migration from v1.0](#migration-from-v10)
@@ -190,7 +191,8 @@ DFW-OPS-COPILOT-V2/
 │   │   ├── DFW_SMS_Manual_March_2025_FINAL.pdf        # ← NEW in v2
 │   │   └── dfwSMSsow.pdf                              # ← NEW in v2
 │   ├── api.py                          # FastAPI routes (CORS enabled)
-│   └── chatbot.py                      # RAG pipeline with smart sources
+│   ├── chatbot.py                      # RAG pipeline with smart sources
+│   └── Dockerfile                      # Backend container definition
 ├── frontend/                           # ← NEW: React application
 │   ├── src/
 │   │   ├── components/
@@ -204,7 +206,9 @@ DFW-OPS-COPILOT-V2/
 │   ├── index.html
 │   ├── package.json                    # Node dependencies
 │   ├── vite.config.js                  # Vite configuration
-│   └── eslint.config.js
+│   ├── eslint.config.js
+│   ├── Dockerfile                      # Frontend container definition
+│   └── nginx.conf                      # nginx reverse proxy config
 ├── data/                               # ChromaDB persistence
 │   └── .gitkeep
 ├── screenshots/                        # Documentation assets
@@ -213,6 +217,8 @@ DFW-OPS-COPILOT-V2/
 ├── .env                                # Environment variables
 ├── .env.example
 ├── .gitignore
+├── .dockerignore                       # Docker build exclusions
+├── docker-compose.yml                  # Container orchestration
 ├── pyproject.toml
 ├── requirements.txt                    # Python dependencies
 └── README.md                           # This file
@@ -357,6 +363,108 @@ On initial backend startup:
 4. Persists to ChromaDB
 
 **Processing time**: 2-3 minutes for 6 documents. Subsequent startups use cached vectors.
+
+---
+
+## Docker Deployment
+
+The easiest way to run the application is using Docker Compose.
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- OpenAI API key
+
+### Quick Start
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd dfw-ops-copilot
+
+# 2. Create .env file with your OpenAI API key
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+
+# 3. Start the application
+docker compose up -d
+
+# 4. Access the application
+# Frontend: http://localhost
+# Backend API: http://localhost:8000
+# API Docs: http://localhost/docs
+```
+
+### Docker Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐
+│    Frontend     │────▶│    Backend      │
+│  (nginx:80)     │     │  (uvicorn:8000) │
+│                 │     │                 │
+│  React SPA      │     │  FastAPI        │
+│  + API Proxy    │     │  + ChromaDB     │
+└─────────────────┘     └────────┬────────┘
+                                 │
+                        ┌────────▼────────┐
+                        │   chroma_data   │
+                        │    (volume)     │
+                        └─────────────────┘
+```
+
+### Container Details
+
+| Service | Port | Description |
+|---------|------|-------------|
+| `frontend` | 80 | nginx serving React app, proxies `/ask` to backend |
+| `backend` | 8000 | FastAPI server with RAG pipeline |
+
+### Useful Commands
+
+```bash
+# Start in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# View backend logs only
+docker compose logs -f backend
+
+# Stop containers
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# Reset ChromaDB data (force re-indexing)
+docker compose down -v
+docker compose up -d
+```
+
+### First-Time Startup
+
+On initial startup, the backend will:
+1. Load all PDFs from `backend/files/`
+2. Generate embeddings (~2-3 minutes)
+3. Persist vectors to ChromaDB volume
+
+The frontend waits for backend health check before starting. Total startup time: **3-5 minutes** on first run.
+
+### Data Persistence
+
+- ChromaDB vectors are stored in the `dfw-copilot-chroma-data` Docker volume
+- PDF documents are mounted from `./backend/files/` (read-only)
+- To add new documents: add PDFs to `backend/files/` and restart backend
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_API_KEY` | Yes | Your OpenAI API key |
+| `CORS_ORIGINS` | No | Custom CORS origins (comma-separated) |
+
+---
 
 ### Example Queries
 
@@ -626,8 +734,8 @@ Despite enhancements, v2.0 maintains these limitations from v1.0 baseline:
 - Follow-up question handling
 
 **Production Readiness:**
-- Docker containerization
-- Environment-based configuration
+- ~~Docker containerization~~ ✅ (Added in v2.1)
+- ~~Environment-based configuration~~ ✅ (Added in v2.1)
 - Rate limiting and quota management
 - Monitoring and logging infrastructure
 

@@ -1,0 +1,67 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+frontend/dist/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files (we pass these via docker-compose)
+.env
+.env.local
+.env.*.local
+
+# Data directory (mounted as volume, not copied)
+data/
+
+# Documentation and misc
+*.md
+!README.md
+LICENSE
+screenshots/
+
+# UV/Poetry lock files (requirements.txt is used instead)
+uv.lock
+poetry.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+tests/
+*_test.py
+test_*.py

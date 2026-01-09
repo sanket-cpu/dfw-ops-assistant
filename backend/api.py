@@ -1,4 +1,5 @@
 #FastAPI backend implementation
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from chatbot import ask_question
@@ -15,10 +16,21 @@ app = FastAPI(
     version="0.1",
 )
 
-# Add CORS middleware
+# CORS configuration - configurable via environment variable
+# Default includes localhost dev servers and Docker frontend
+default_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost",
+    "http://frontend",
+    "http://frontend:80",
+]
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+cors_origins = cors_origins_env.split(",") if cors_origins_env else default_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './ChatPanel.css';
 
+// API URL configuration - uses /api in Docker (proxied by nginx), localhost for local dev
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 function ChatPanel({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -40,7 +43,7 @@ function ChatPanel({ isOpen, onClose }) {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/ask?query=${encodeURIComponent(inputValue)}`
+        `${API_BASE_URL}/ask?query=${encodeURIComponent(inputValue)}`
       );
 
       if (!response.ok) {
@@ -65,7 +68,7 @@ function ChatPanel({ isOpen, onClose }) {
       console.error('Error:', error);
       const errorMessage = {
         role: 'assistant',
-        content: `Error: ${error.message}. Please ensure the backend is running on http://localhost:8000`,
+        content: `Error: ${error.message}. Please ensure the backend is running.`,
         timestamp: new Date().toISOString(),
         isError: true,
       };

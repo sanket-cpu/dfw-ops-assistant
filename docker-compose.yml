@@ -1,0 +1,46 @@
+services:
+  # Backend FastAPI service
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: dfw-copilot-backend
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      # Persist ChromaDB data between restarts
+      - chroma_data:/app/data
+      # Mount PDF files (read-only for document updates without rebuild)
+      - ./backend/files:/app/backend/files:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+
+  # Frontend React/nginx service
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: dfw-copilot-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  chroma_data:
+    name: dfw-copilot-chroma-data
