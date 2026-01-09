@@ -21,7 +21,7 @@ if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables.")
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small", )
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, max_completion_tokens=800)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, max_completion_tokens=500)
 
 # Chroma setup
 chroma = Chroma(
@@ -97,8 +97,8 @@ def load_internal_documents():
 
     docs = pdf_loader.load()
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size = 800,
-        chunk_overlap=120,
+        chunk_size = 600,
+        chunk_overlap=80,
     )   
 
     for doc in docs:
