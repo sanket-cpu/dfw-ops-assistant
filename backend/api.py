@@ -35,7 +35,7 @@ class AskResponse(BaseModel):
 # FastAPI API Endpoints
 
 @app.get("/ask")
-# try using an Object instead of a string for response
+# try using a dict instead of a string for response
 def ask(query: str) -> AskResponse:
     try:
         result = ask_question(query)  # Now returns dict

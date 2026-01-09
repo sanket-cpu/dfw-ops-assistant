@@ -21,7 +21,7 @@ if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found in environment variables.")
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small", )
-llm = ChatOpenAI(model="gpt-5-nano", temperature=0, max_completion_tokens=800)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, max_completion_tokens=800)
 
 # Chroma setup
 chroma = Chroma(
