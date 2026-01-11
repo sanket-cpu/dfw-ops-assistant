@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.gitkeep
 
 # Python
 __pycache__
@@ -39,6 +40,9 @@ build/
 *.swo
 *~
 
+# Claude AI (can be very large)
+.claude/
+
 # Environment files (we pass these via docker-compose)
 .env
 .env.local
@@ -46,12 +50,19 @@ build/
 
 # Data directory (mounted as volume, not copied)
 data/
+backend/data/
 
 # Documentation and misc
 *.md
 !README.md
 LICENSE
 screenshots/
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
 
 # UV/Poetry lock files (requirements.txt is used instead)
 uv.lock

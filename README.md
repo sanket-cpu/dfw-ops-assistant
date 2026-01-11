@@ -17,10 +17,8 @@ Version 2.0 represents a **major architectural upgrade** from the v1.0 baseline,
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Docker Deployment](#docker-deployment)
+- [Quick Start (Docker Compose)](#quick-start-docker-compose---recommended)
+- [Manual Installation](#manual-installation-alternative)
 - [API Documentation](#api-documentation)
 - [Implementation Details](#implementation-details)
 - [Migration from v1.0](#migration-from-v10)
@@ -75,7 +73,7 @@ The core RAG pipeline (ChromaDB + LangChain + OpenAI) remains architecturally co
 - **New Documents**:
   - DFW SMS Manual (Safety Management System) - March 2025
   - DFW SMS SOW (Statement of Work)
-- **Total Corpus**: 6 documents (up from 5 in v1.0)
+- **Total Corpus**: 4 documents (up from 2 in v1.0)
 
 #### API Improvements
 - **CORS Middleware**: Full support for React dev servers (ports 3000, 5173)
@@ -164,19 +162,39 @@ These components remain consistent with v1.0 baseline for stability:
 | **Dev Server** | Streamlit | Vite (HMR enabled) | Faster dev iteration |
 | **Chunking** | 800 tokens / 120 overlap | 600 tokens / 80 overlap | Precision over context |
 | **Max Output** | 800 tokens | 500 tokens | Cost optimization |
-| **Knowledge Base** | 5 documents | 6 documents | Added SMS manual |
+| **Knowledge Base** | 2 documents | 4 documents | Added SMS manual + SOW |
 | **API Endpoints** | 3 (/,  /documents, /ask) | 2 (/, /ask) | Simplified API surface |
 
 ### Unchanged from v1.0
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Backend Framework** | FastAPI | 0.121.3+ |
+| **Backend Framework** | FastAPI | 0.128.0+ |
 | **LLM** | OpenAI GPT-4o-mini | gpt-4o-mini |
 | **Embeddings** | OpenAI | text-embedding-3-small |
-| **Vector Database** | ChromaDB | 1.3.5+ |
-| **RAG Framework** | LangChain | 1.0.8+ |
+| **Vector Database** | ChromaDB | 1.4.0+ |
+| **RAG Framework** | LangChain | 1.2.2+ |
+| **LangChain OpenAI** | langchain-openai | 1.1.7+ |
 | **Runtime** | Python | 3.12+ |
+
+### Python Dependencies (Full List)
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| fastapi[standard] | >=0.128.0 | Backend API framework |
+| uvicorn | >=0.40.0 | ASGI server |
+| chromadb | >=1.4.0 | Vector database |
+| langchain | >=1.2.2 | RAG orchestration |
+| langchain-openai | >=1.1.7 | OpenAI integration |
+| langchain-chroma | >=1.1.0 | ChromaDB integration |
+| langchain-community | >=0.4.1 | Community integrations |
+| langchain-core | >=1.2.6 | Core utilities |
+| openai | >=2.14.0 | OpenAI API client |
+| pymupdf | >=1.26.7 | PDF text extraction |
+| tiktoken | >=0.12.0 | Token counting |
+| unstructured[pdf] | >=0.18.26 | PDF parsing |
+| pydantic | >=2.12.5 | Data validation |
+| python-dotenv | >=1.2.1 | Environment variables |
 
 ---
 
@@ -185,7 +203,7 @@ These components remain consistent with v1.0 baseline for stability:
 ```
 DFW-OPS-COPILOT-V2/
 ├── backend/
-│   ├── files/                          # Document corpus (6 PDFs)
+│   ├── files/                          # Document corpus (4 PDFs)
 │   │   ├── DFW_Design_Criteria_Manual_2025_FINAL.pdf
 │   │   ├── DFW_Airport_Operations_Manual_-_4-1-2024.pdf
 │   │   ├── DFW_SMS_Manual_March_2025_FINAL.pdf        # ← NEW in v2
@@ -229,153 +247,19 @@ DFW-OPS-COPILOT-V2/
 ## Prerequisites
 
 ### System Requirements
-- Python 3.12 or higher
-- Node.js 18+ and npm (for React frontend)
+- Docker and Docker Compose (recommended)
+- OR for manual setup:
+  - Python 3.12 or higher
+  - Node.js 18+ and npm
 - 4GB RAM minimum
 - Internet connection (OpenAI API)
 
 ### External Dependencies
 - **OpenAI API Key**: Obtain from [OpenAI Platform](https://platform.openai.com)
-- **Package Managers**: 
-  - Python: UV (recommended) or pip
-  - Node: npm or yarn
 
 ---
 
-## Installation
-
-### Backend Setup
-
-```bash
-# Navigate to project root
-cd dfw-ops-copilot-v2
-
-# Install Python dependencies
-pip install uv
-uv sync
-
-# Activate virtual environment
-# Windows:
-.venv\Scripts\activate
-# Linux/Mac:
-source .venv/bin/activate
-```
-
-### Frontend Setup
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install Node dependencies
-npm install
-
-# (Optional) Verify installation
-npm run lint
-```
-
----
-
-## Configuration
-
-### Environment Variables
-
-Create `.env` file in **project root** (not in frontend/):
-
-```bash
-cp .env.example .env
-```
-
-Configure OpenAI credentials:
-
-```env
-OPENAI_API_KEY=sk-proj-YOUR_OPENAI_API_KEY_HERE
-```
-
-### Document Corpus
-
-Place PDFs in `backend/files/`. v2.0 includes:
-- DFW Design Criteria Manual (2025 Edition)
-- DFW Airport Operations Manual (April 2024)
-- **DFW SMS Manual (March 2025)** - NEW
-- **DFW SMS SOW** - NEW
-
-### CORS Configuration
-
-Edit `backend/api.py` if frontend runs on different port:
-
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
-    ...
-)
-```
-
----
-
-## Usage
-
-### Running v2.0 Application
-
-The system requires **two concurrent processes**:
-
-#### Terminal 1: Backend API Server
-
-```bash
-cd backend
-uvicorn api:app --reload --port 8000
-```
-
-Expected output:
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-INFO:     Application startup complete.
-INFO:     Loaded 450 internal docs into Chroma  # Example count
-```
-
-Backend available at: `http://localhost:8000`
-
-#### Terminal 2: React Frontend (Vite Dev Server)
-
-```bash
-cd frontend
-npm run dev
-```
-
-Expected output:
-```
-VITE v7.2.4  ready in 342 ms
-
-➜  Local:   http://localhost:5173/
-➜  Network: use --host to expose
-➜  press h + enter to show help
-```
-
-Frontend opens automatically at: `http://localhost:5173`
-
-### First-Time Document Indexing
-
-On initial backend startup:
-1. Loads all PDFs from `backend/files/`
-2. Splits into 600-token chunks (80-token overlap)
-3. Generates embeddings (costs ~$0.001/1000 tokens)
-4. Persists to ChromaDB
-
-**Processing time**: 2-3 minutes for 6 documents. Subsequent startups use cached vectors.
-
----
-
-## Docker Deployment
-
-The easiest way to run the application is using Docker Compose.
-
-### Prerequisites
-
-- Docker and Docker Compose installed
-- OpenAI API key
-
-### Quick Start
+## Quick Start (Docker Compose - Recommended)
 
 ```bash
 # 1. Clone the repository
@@ -394,6 +278,8 @@ docker compose up -d
 # Backend API: http://localhost:8000
 # API Docs: http://localhost/docs
 ```
+
+On first startup, the backend will index all documents (~3-5 minutes). Subsequent startups use cached vectors.
 
 ### Docker Architecture
 
@@ -463,6 +349,56 @@ The frontend waits for backend health check before starting. Total startup time:
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes | Your OpenAI API key |
 | `CORS_ORIGINS` | No | Custom CORS origins (comma-separated) |
+
+---
+
+## Manual Installation (Alternative)
+
+For development or when Docker is not available.
+
+### Backend Setup
+
+```bash
+# Navigate to project root
+cd dfw-ops-copilot
+
+# Install Python dependencies
+pip install uv
+uv sync
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
+
+# Create .env file
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+
+# Start backend server
+cd backend
+uvicorn api:app --reload --port 8000
+```
+
+### Frontend Setup
+
+```bash
+# In a new terminal, navigate to frontend directory
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+### Access the Application
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
 ---
 
@@ -706,12 +642,13 @@ Despite enhancements, v2.0 maintains these limitations from v1.0 baseline:
 
 ### New Limitations in v2.0
 
-1. **Node.js Dependency**
-   - Requires Node.js 18+ (additional system requirement vs v1.0)
+1. **Docker Dependency (Recommended)**
+   - Docker Compose required for easiest deployment
+   - Manual installation requires Node.js 18+ and Python 3.12+
 
-2. **Dual Dev Servers**
-   - Must manage two processes (backend + frontend)
-   - More complex deployment than single Streamlit app
+2. **Dual Process Architecture**
+   - Separate backend and frontend containers/processes
+   - Docker Compose handles orchestration automatically; manual setup requires two terminals
 
 3. **Source Citation Heuristics**
    - Pattern matching for source detection may have false negatives
@@ -743,22 +680,35 @@ Despite enhancements, v2.0 maintains these limitations from v1.0 baseline:
 
 ## Troubleshooting
 
-### Common Issues
+### Docker Issues
 
-**Issue**: React frontend shows "Failed to connect to backend"  
+**Issue**: Frontend shows loading spinner indefinitely
+**Resolution**: Backend is still indexing documents. Check logs with `docker compose logs -f backend`. Wait for "Loaded X internal docs into Chroma" message.
+
+**Issue**: `docker compose up` fails with port conflict
+**Resolution**: Another service is using port 80 or 8000. Stop conflicting services or modify ports in `docker-compose.yml`.
+
+**Issue**: Changes to documents not reflected
+**Resolution**: Restart backend to re-index: `docker compose restart backend` or force full re-index with `docker compose down -v && docker compose up -d`.
+
+### Manual Installation Issues
+
+**Issue**: React frontend shows "Failed to connect to backend"
 **Resolution**: Ensure backend running on port 8000. Check CORS configuration in `backend/api.py`.
 
-**Issue**: `npm: command not found`  
+**Issue**: `npm: command not found`
 **Resolution**: Install Node.js 18+ from [nodejs.org](https://nodejs.org)
 
-**Issue**: Frontend hot reload not working  
+**Issue**: Frontend hot reload not working
 **Resolution**: Vite requires `package.json` in frontend directory. Verify `vite.config.js` exists.
 
-**Issue**: Sources not appearing when requested  
+### General Issues
+
+**Issue**: Sources not appearing when requested
 **Resolution**: Verify query contains trigger keywords like "give me sources" or "cite". Check logs for `should_include_sources()` output.
 
-**Issue**: Chunking differences from v1.0  
-**Resolution**: Delete `data/` directory to force re-indexing with new 600-token chunks.
+**Issue**: Chunking differences from v1.0
+**Resolution**: Delete `data/` directory (or Docker volume) to force re-indexing with new 600-token chunks.
 
 ---
 
@@ -813,21 +763,23 @@ Internal use only. All DFW Airport documentation remains property of Dallas Fort
 
 ## Version History
 
-### v2.0 - Enhanced Release 
-**Scope**: Production UI, cost optimization, smart citations
+### v2.0 - Enhanced Release
+**Scope**: Production UI, cost optimization, smart citations, Docker deployment
 
 **Major Changes:**
 - Complete frontend rewrite (React 19 + Vite)
+- Docker Compose deployment with nginx reverse proxy
 - Optimized chunking (600 tokens, 80 overlap)
 - Intelligent source attribution (context-aware)
 - CORS middleware addition
 - Cost reduction (~20% per query)
-- Expanded knowledge base (DFW SMS Manual added)
+- Expanded knowledge base (DFW SMS Manual + SOW added)
 
 **Breaking Changes:**
 - Streamlit removed (incompatible with v1.0)
 - `/documents` endpoint removed
-- Requires Node.js 18+
+- Requires Node.js 18+ (for manual installation)
+- Requires Docker (for recommended deployment)
 
 ### v1.0 - Baseline Release (January 2026)
 See v1.0 README for baseline features.
