@@ -1,3 +1,6 @@
+# DFW Ops Assistant - Frontend Dockerfile
+# Multi-stage build: Node 20 for build, Nginx for serving
+
 # Build stage
 FROM node:20-alpine AS build
 
@@ -11,6 +14,11 @@ RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Build argument for API URL (used at build time by Vite)
+# Empty string means use same origin (nginx proxy handles routing)
+ARG VITE_API_BASE_URL=""
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Build the app
 RUN npm run build

@@ -90,13 +90,71 @@ The Document Q&A panel (floating chat bubble) allows you to query DFW Airport do
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Docker Compose (Recommended)
+
+The fastest way to get started. Requires only Docker and an OpenAI API key.
+
+**Prerequisites:**
+- Docker Desktop
+- OpenAI API key
+
+**Steps:**
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd dfw-ops-assistant
+   ```
+
+2. **Set your OpenAI API key**
+   ```bash
+   # Linux/macOS
+   export OPENAI_API_KEY=your-api-key-here
+
+   # Windows PowerShell
+   $env:OPENAI_API_KEY="your-api-key-here"
+
+   # Windows CMD
+   set OPENAI_API_KEY=your-api-key-here
+   ```
+
+3. **Start the application**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application**
+
+   | Service | URL | Description |
+   |---------|-----|-------------|
+   | Frontend | http://localhost:3000 | Main application UI |
+   | Backend API | http://localhost:8000 | Direct API access |
+   | API Docs | http://localhost:8000/docs | Swagger/OpenAPI documentation |
+   | Health Check | http://localhost:8000/health | Service health status |
+
+5. **View logs** (optional)
+   ```bash
+   docker-compose logs -f
+   ```
+
+6. **Stop the application**
+   ```bash
+   docker-compose down
+   ```
+
+---
+
+### Option 2: Local Development
+
+For development with hot-reload. Requires Python, Node.js, and an OpenAI API key.
+
+**Prerequisites:**
 
 - Python 3.12+
 - Node.js 18+
 - OpenAI API key
 
-### Setup
+**Setup**
 
 1. **Clone the repository**
    ```bash
@@ -258,20 +316,38 @@ Verify your API key is correctly set in `.env` and has sufficient credits.
 
 ### Port already in use
 The default ports are:
-- Backend: 8000 (uvicorn default)
-- Frontend: 5173 (Vite default)
 
-Change with `uvicorn api:app --port <PORT>` or set `VITE_API_BASE_URL` in frontend `.env`.
+| Deployment | Frontend | Backend |
+|------------|----------|---------|
+| Docker Compose | 3000 | 8000 |
+| Local Development | 5173 | 8000 |
+
+**Local development:** Change with `uvicorn api:app --port <PORT>` or set `VITE_API_BASE_URL` in frontend `.env`.
+
+**Docker Compose:** Edit `docker-compose.yml` to change port mappings (e.g., `"3001:80"` for frontend).
+
+### Docker containers unhealthy
+If the backend container fails health checks:
+```bash
+# Check container logs
+docker-compose logs backend
+
+# Verify OPENAI_API_KEY is set
+echo $OPENAI_API_KEY  # Linux/macOS
+echo %OPENAI_API_KEY% # Windows CMD
+```
 
 ### CORS errors
 The backend allows all origins by default. For production, update `allow_origins` in `backend/api.py`.
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key (required) | - |
-| `VITE_API_BASE_URL` | Backend URL for frontend | `http://localhost:8000` |
+| Variable | Description | Default | Used By |
+|----------|-------------|---------|---------|
+| `OPENAI_API_KEY` | OpenAI API key (required) | - | Backend |
+| `VITE_API_BASE_URL` | Backend URL for frontend | `http://localhost:8000` | Frontend (local dev) |
+
+**Note:** For Docker Compose, set `OPENAI_API_KEY` as a shell environment variable before running `docker-compose up`. The frontend uses nginx to proxy API requests, so `VITE_API_BASE_URL` is not needed.
 
 ## License
 

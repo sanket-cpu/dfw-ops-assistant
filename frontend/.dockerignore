@@ -1,7 +1,41 @@
-node_modules
-dist
-.git
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output (generated during Docker build)
+dist/
+build/
+
+# Git
+.git/
 .gitignore
-*.md
+
+# Environment (secrets passed via build args)
 .env
-.env.local
+.env.*
+!.env.example
+
+# Documentation
+*.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Logs
+*.log

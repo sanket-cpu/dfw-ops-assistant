@@ -1,0 +1,167 @@
+# ===========================================
+# DFW Ops Assistant - Docker Ignore File
+# Excludes non-essential files from Docker builds
+# ===========================================
+
+# ------------------------------
+# Git
+# ------------------------------
+.git/
+.gitignore
+.gitattributes
+
+# ------------------------------
+# Python artifacts
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+eggs/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ------------------------------
+# Python virtual environments
+# ------------------------------
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# ------------------------------
+# Python testing
+# ------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ------------------------------
+# Node.js
+# ------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+.yarn/
+
+# ------------------------------
+# Build outputs
+# ------------------------------
+frontend/dist/
+frontend/build/
+*.bundle.js
+*.bundle.js.map
+
+# ------------------------------
+# IDE / Editor
+# ------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ------------------------------
+# Environment files (secrets)
+# ------------------------------
+.env
+.env.*
+!.env.example
+
+# ------------------------------
+# ChromaDB / Data persistence
+# (handled via Docker volumes)
+# ------------------------------
+data/
+*.db
+*.sqlite3
+
+# ------------------------------
+# AI Assistant / Claude files
+# ------------------------------
+.claude/
+CLAUDE.md
+claude.md
+PLAN.md
+plan.md
+.cursorrules
+.cursor/
+.aider*
+.continue/
+.codeium/
+copilot-instructions.md
+
+# ------------------------------
+# Documentation (not needed for runtime)
+# ------------------------------
+*.md
+!README.md
+docs/
+screenshots/
+
+# ------------------------------
+# OS-specific files
+# ------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ------------------------------
+# Logs
+# ------------------------------
+*.log
+logs/
+
+# ------------------------------
+# Temporary files
+# ------------------------------
+*.tmp
+*.temp
+*.bak
+*.backup
+.env.backup*
+
+# ------------------------------
+# Package manager locks (use requirements.txt/package-lock.json instead)
+# ------------------------------
+uv.lock
+poetry.lock
+Pipfile.lock
+
+# ------------------------------
+# Miscellaneous
+# ------------------------------
+.dockerignore
+Makefile
+docker-compose*.yml
+*.dockerfile
+LICENSE
+CHANGELOG*
+CONTRIBUTING*

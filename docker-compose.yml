@@ -1,36 +1,47 @@
-version: '3.8'
-
 services:
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Empty string = use same origin, nginx proxies API requests
+        VITE_API_BASE_URL: ""
     ports:
       - "3000:80"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8001
     depends_on:
-      - ops-adapter
+      backend:
+        condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
-  ops-adapter:
+  backend:
     build:
-      context: ./ops-adapter
+      context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8001:8001"
+      - "8000:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_PATH=/app/data/tickets.db
     volumes:
-      - ./data:/app/data
+      # Persist ChromaDB vector store (code uses ../data relative to /app)
+      - chroma-data:/data
+      # Mount document files (read-only)
+      - ./backend/files:/app/files:ro
     networks:
       - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   app-network:
     driver: bridge
 
 volumes:
-  data:
+  chroma-data:
+    driver: local

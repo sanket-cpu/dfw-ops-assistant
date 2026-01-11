@@ -96,7 +96,7 @@ export default function BacklogAgingChart({
       .on("mouseout", function () {
         d3.select(this).attr("fill", "#4F46E5");
       })
-      .on("click", (event, d) => {
+      .on("click", (_event, d) => {
         onBucketClick(d.label);
       });
 
