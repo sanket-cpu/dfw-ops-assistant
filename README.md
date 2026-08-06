@@ -1,6 +1,6 @@
-# DFW Ops Intelligence Copilot
+# Airports Ops Intelligence Copilot
 
-An AI-powered operations intelligence platform for Dallas Fort Worth International Airport. Combines ticket management with a RAG-based AI copilot assistant that helps operations staff troubleshoot issues, manage tickets through natural language, and query airport documentation.
+An AI-powered operations intelligence platform for airport. Combines ticket management with a RAG-based AI copilot assistant that helps operations staff troubleshoot issues, manage tickets through natural language, and query airport documentation.
 
 ## Screenshots
 
@@ -42,7 +42,7 @@ Similarly, you can reopen resolved tickets through chat. The AI understands comm
 ### RAG Document Chatbot
 ![RAG Chatbot](screenshots/RAG%20Chatbot.png)
 
-The Document Q&A panel (floating chat bubble) allows you to query DFW Airport documentation including operations manuals, design criteria, and SMS documentation. Responses are grounded in the actual documents with citations, preventing hallucination.
+The Document Q&A panel (floating chat bubble) allows you to query airport documentation including operations manuals, design criteria, and SMS documentation. Responses are grounded in the actual documents with citations, preventing hallucination.
 
 ---
 
@@ -52,7 +52,7 @@ The Document Q&A panel (floating chat bubble) allows you to query DFW Airport do
 - **Interactive Ticket Management**: Browse, filter, and view detailed ticket information
 - **AI Copilot Assistant**: Chat with an AI assistant about specific tickets for troubleshooting help
 - **Natural Language Actions**: Update ticket status through conversational commands with confirmation workflow
-- **RAG Document Q&A**: Floating chat widget to query DFW Airport documentation (Operations Manual, Design Criteria, SMS Manual)
+- **RAG Document Q&A**: Floating chat widget to query airport documentation (Operations Manual, Design Criteria, SMS Manual)
 - **Source Citations**: AI responses include citations from ticket descriptions and documents
 - **Responsive UI**: Modern interface built with React and TypeScript
 
@@ -103,7 +103,7 @@ The fastest way to get started. Requires only Docker and an OpenAI API key.
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd dfw-ops-assistant
+   cd airport-ops-assistant
    ```
 
 2. **Set your OpenAI API key**
@@ -159,7 +159,7 @@ For development with hot-reload. Requires Python, Node.js, and an OpenAI API key
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd dfw-ops-assistant
+   cd airport-ops-assistant
    ```
 
 2. **Set up environment variables**
@@ -247,14 +247,14 @@ For development with hot-reload. Requires Python, Node.js, and an OpenAI API key
 
 ## Included Documents
 
-The following DFW documentation is pre-loaded for RAG queries:
+The following airport documentation is pre-loaded for RAG queries:
 
 | Document | Description |
 |----------|-------------|
-| DFW Airport Operations Manual (2024) | Airport operations procedures |
-| DFW Design Criteria Manual (2025) | Design and construction standards |
-| DFW SMS Manual (2025) | Safety Management System procedures |
-| DFW SMS SOW | SMS scope of work |
+| airport Operations Manual (2024) | Airport operations procedures |
+| airport Design Criteria Manual (2025) | Design and construction standards |
+| airport SMS Manual (2025) | Safety Management System procedures |
+| airport SMS SOW | SMS scope of work |
 
 ### Adding New Documents
 
@@ -266,7 +266,7 @@ The following DFW documentation is pre-loaded for RAG queries:
 ## File Structure
 
 ```
-dfw-ops-assistant/
+airport-ops-assistant/
 ├── backend/                    # FastAPI backend
 │   ├── api.py                 # Unified API endpoints
 │   ├── chatbot.py             # RAG document system
@@ -274,9 +274,9 @@ dfw-ops-assistant/
 │   ├── models.py              # Pydantic models
 │   ├── env_loader.py          # Environment loading with encoding fallback
 │   └── files/                 # PDF/DOCX documents for RAG
-│       ├── DFW_Airport_Operations_Manual_-_4-1-2024.pdf
-│       ├── DFW_Design_Criteria_Manual_2025_FINAL.pdf
-│       ├── DFW_SMS_Manual_March_2025_FINAL.pdf
+│       ├── Airport_Operations_Manual_-_4-1-2024.pdf
+│       ├── Airport_Design_Criteria_Manual_2025_FINAL.pdf
+│       ├── Airport_SMS_Manual_March_2025_FINAL.pdf
 │       └── ...
 ├── frontend/                   # React frontend
 │   ├── src/
